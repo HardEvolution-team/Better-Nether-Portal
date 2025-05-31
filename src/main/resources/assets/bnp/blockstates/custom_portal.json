@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "bnp:custom_portal_ns" },
+    "facing=south": { "model": "bnp:custom_portal_ns" },
+    "facing=east": { "model": "bnp:custom_portal_ew" },
+    "facing=west": { "model": "bnp:custom_portal_ew" }
+  }
+}

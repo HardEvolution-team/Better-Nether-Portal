@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "particle": "bnp:blocks/portal_core_active",
+    "down": "bnp:blocks/portal_core_active",
+    "up": "bnp:blocks/portal_core_active",
+    "north": "bnp:blocks/portal_core_active",
+    "east": "bnp:blocks/portal_core_active",
+    "south": "bnp:blocks/active_portal_face",
+    "west": "bnp:blocks/portal_core_active"
+  }
+}

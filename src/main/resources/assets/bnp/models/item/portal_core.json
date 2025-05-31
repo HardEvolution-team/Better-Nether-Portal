@@ -1,0 +1,12 @@
+{
+  "parent": "bnp:block/portal_core",
+  "textures": {
+    "particle": "bnp:blocks/portal_core_inactive",
+    "down": "bnp:blocks/portal_core_inactive",
+    "up": "bnp:blocks/portal_core_inactive",
+    "north": "bnp:blocks/portal_core_inactive",
+    "east": "bnp:blocks/portal_core_inactive",
+    "south": "bnp:blocks/inactive_portal_face",
+    "west": "bnp:blocks/portal_core_inactive"
+  }
+}
