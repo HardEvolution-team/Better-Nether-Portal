@@ -2,7 +2,10 @@ package com.ded.bnp;
 
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
@@ -29,6 +32,12 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
     private boolean beingDestroyed = false;
     private int tickCounter = 0;
     private static final int CHECK_INTERVAL = 20;
+    
+    // Флаг для отслеживания, был ли портал разрушен игроком
+    private boolean brokenByPlayer = false;
+    
+    // Хранение предмета активации для возможного выпадения при разрушении
+    private ItemStack activationItem = ItemStack.EMPTY;
 
     public void setActive(boolean active) {
         this.isActive = active;
@@ -39,6 +48,47 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
             IBlockState state = world.getBlockState(pos);
             world.notifyBlockUpdate(pos, state, state, 3);
         }
+    }
+    
+    /**
+     * Устанавливает флаг разрушения игроком
+     * @param brokenByPlayer true если ядро разрушено игроком, false если системой
+     */
+    public void setBrokenByPlayer(boolean brokenByPlayer) {
+        this.brokenByPlayer = brokenByPlayer;
+        markDirty();
+    }
+    
+    /**
+     * Проверяет, было ли ядро разрушено игроком
+     * @return true если ядро разрушено игроком, false если системой
+     */
+    public boolean isBrokenByPlayer() {
+        return brokenByPlayer;
+    }
+    
+    /**
+     * Сохраняет предмет активации для возможного выпадения при разрушении
+     * @param item Предмет, использованный для активации портала
+     */
+    public void setActivationItem(ItemStack item) {
+        // Создаем копию предмета с количеством 1, чтобы избежать дюпа
+        if (!item.isEmpty()) {
+            ItemStack singleItem = item.copy();
+            singleItem.setCount(1);
+            this.activationItem = singleItem;
+        } else {
+            this.activationItem = ItemStack.EMPTY;
+        }
+        markDirty();
+    }
+    
+    /**
+     * Получает предмет активации
+     * @return Предмет, использованный для активации портала
+     */
+    public ItemStack getActivationItem() {
+        return activationItem;
     }
 
     public boolean isActive() {
@@ -237,20 +287,16 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
 
     public void breakLinkedPortalCompletely() {
         if (linkedPortalPos == null || beingDestroyed) {
-
             return;
         }
 
-
         WorldServer targetWorld = world.getMinecraftServer().getWorld(linkedDimension);
         if (targetWorld == null) {
-
             return;
         }
 
         // Проверяем, загружен ли чанк с порталом (стандартное поведение Minecraft)
         if (!targetWorld.isBlockLoaded(linkedPortalPos)) {
-
             return;
         }
 
@@ -259,6 +305,10 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
             TileEntityPortalCore linkedCore = (TileEntityPortalCore) te;
             linkedCore.setBeingDestroyed(true);
             linkedCore.setActive(false);
+            
+            // Важно: устанавливаем флаг, что ядро разрушено системой, а не игроком
+            // чтобы предмет активации не выпал при системном разрушении
+            linkedCore.setBrokenByPlayer(false);
 
             // Разрушаем блоки портала
             linkedCore.breakPortal();
@@ -268,8 +318,6 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
 
             // Разрушаем ядро портала
             targetWorld.setBlockToAir(linkedPortalPos);
-
-
         }
     }
 
@@ -304,6 +352,14 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
         }
         linkedDimension = compound.getInteger("LinkedDimension");
         isNetherSide = compound.getBoolean("IsNetherSide");
+        
+        // Загружаем флаг разрушения игроком
+        brokenByPlayer = compound.getBoolean("BrokenByPlayer");
+        
+        // Загружаем предмет активации
+        if (compound.hasKey("ActivationItem")) {
+            activationItem = new ItemStack(compound.getCompoundTag("ActivationItem"));
+        }
 
         // Загружаем блоки портала
         portalBlocks.clear();
@@ -322,8 +378,6 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
                 frameBlocks.add(new BlockPos(frameBlockArray[i], frameBlockArray[i + 1], frameBlockArray[i + 2]));
             }
         }
-
-
     }
 
     @Override
@@ -345,6 +399,16 @@ public class TileEntityPortalCore extends TileEntity implements ITickable {
         }
         compound.setInteger("LinkedDimension", linkedDimension);
         compound.setBoolean("IsNetherSide", isNetherSide);
+        
+        // Сохраняем флаг разрушения игроком
+        compound.setBoolean("BrokenByPlayer", brokenByPlayer);
+        
+        // Сохраняем предмет активации
+        if (!activationItem.isEmpty()) {
+            NBTTagCompound itemTag = new NBTTagCompound();
+            activationItem.writeToNBT(itemTag);
+            compound.setTag("ActivationItem", itemTag);
+        }
 
         // Сохраняем блоки портала
         int[] portalBlockArray = new int[portalBlocks.size() * 3];

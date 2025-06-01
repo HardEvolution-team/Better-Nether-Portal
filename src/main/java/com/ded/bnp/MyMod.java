@@ -1,5 +1,9 @@
 package com.ded.bnp;
 
+import com.ded.bnp.config.ModConfig;
+import com.ded.bnp.np_blocking.BlockIgnitionHandler;
+import com.ded.bnp.np_blocking.FlintAndSteelHandler;
+import com.ded.bnp.np_blocking.NetherPortalEventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.crafting.IRecipe;
@@ -38,6 +42,9 @@ public class MyMod {
     public void preInit(FMLPreInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
         LOGGER.info("I am " + Tags.MODNAME + " at version " + Tags.VERSION);
+        
+
+        
         ModBlocks.init();
         ModBlocks.InGameRegister();
     }
@@ -71,6 +78,10 @@ public class MyMod {
      */
     @EventHandler
     public void init(FMLInitializationEvent event) {
+        MinecraftForge.EVENT_BUS.register(NetherPortalEventHandler.class);
+        MinecraftForge.EVENT_BUS.register(BlockIgnitionHandler.class);
+        MinecraftForge.EVENT_BUS.register(FlintAndSteelHandler.class);
+
         GameRegistry.registerTileEntity(TileEntityPortalCore.class, "tileEntityPortalCore");
         GameRegistry.registerTileEntity(TileEntityCustomPortal.class, "tileEntityCustomPortal");
     }

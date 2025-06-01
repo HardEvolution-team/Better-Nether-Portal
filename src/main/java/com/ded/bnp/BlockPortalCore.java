@@ -8,10 +8,12 @@ import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
+import com.ded.bnp.config.ModConfig;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -100,14 +102,80 @@ public class BlockPortalCore extends Block {
     public TileEntity createTileEntity(World world, IBlockState state) {
         return new TileEntityPortalCore();
     }
+    
+    /**
+     * Вызывается при разрушении блока
+     * Различает разрушение игроком и системой
+     */
+    @Override
+    public void breakBlock(World world, BlockPos pos, IBlockState state) {
+        if (!world.isRemote) {
+            TileEntity te = world.getTileEntity(pos);
+            if (te instanceof TileEntityPortalCore) {
+                TileEntityPortalCore core = (TileEntityPortalCore) te;
+                
+                // Если ядро было активным и разрушено игроком, выпадает предмет активации
+                if (core.isActive() && core.isBrokenByPlayer() && !core.getActivationItem().isEmpty()) {
+                    EntityItem entityItem = new EntityItem(
+                        world, 
+                        pos.getX() + 0.5, 
+                        pos.getY() + 0.5, 
+                        pos.getZ() + 0.5, 
+                        core.getActivationItem().copy()
+                    );
+                    world.spawnEntity(entityItem);
+                    
+                    // Очищаем предмет активации, чтобы избежать повторного дропа
+                    core.setActivationItem(ItemStack.EMPTY);
+                }
+                
+                // Разрушаем блоки портала на своей стороне
+                core.breakPortal();
+                
+                // Всегда разрушаем противоположную сторону полностью
+                core.breakLinkedPortalCompletely();
+            }
+        }
+        
+        super.breakBlock(world, pos, state);
+    }
+    
+    /**
+     * Вызывается при добыче блока игроком
+     * Устанавливает флаг разрушения игроком
+     */
+    @Override
+    public void onBlockHarvested(World world, BlockPos pos, IBlockState state, EntityPlayer player) {
+        if (!world.isRemote) {
+            TileEntity te = world.getTileEntity(pos);
+            if (te instanceof TileEntityPortalCore) {
+                ((TileEntityPortalCore) te).setBrokenByPlayer(true);
+            }
+        }
+        
+        super.onBlockHarvested(world, pos, state, player);
+    }
 
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
         ItemStack stack = player.getHeldItem(hand);
-        if (!world.isRemote && stack.getItem() == Items.FLINT_AND_STEEL && !state.getValue(ACTIVE)) {
+        if (!world.isRemote && stack.getItem() == ModConfig.getPortalActivatorItem() && !state.getValue(ACTIVE)) {
             EnumFacing portalFacing = checkFrame(world, pos);
             if (portalFacing != null) {
+                // Store the activation item for potential drop when core is broken
+                TileEntity te = world.getTileEntity(pos);
+                if (te instanceof TileEntityPortalCore) {
+                    ((TileEntityPortalCore) te).setActivationItem(stack.copy());
+                }
+                
+                // Activate the portal
                 activatePortal(world, pos, state, portalFacing, player, hand);
+                
+                // Consume the activation item (remove from player's hand/inventory)
+                if (!player.capabilities.isCreativeMode) {
+                    stack.shrink(1);
+                }
+                
                 return true;
             }
         }
@@ -156,10 +224,8 @@ public class BlockPortalCore extends Block {
                 new ModelResourceLocation(getRegistryName(), "inventory"));
     }
     private void activatePortal(World world, BlockPos pos, IBlockState state, EnumFacing facing, EntityPlayer player, EnumHand hand) {
-
         TileEntity te = world.getTileEntity(pos);
         if (!(te instanceof TileEntityPortalCore)) {
-
             return;
         }
 
@@ -169,19 +235,14 @@ public class BlockPortalCore extends Block {
         core.setActive(true);
         core.setFacing(facing);
 
-
         // Сохраняем текущее направление блока при активации
         EnumFacing blockFacing = state.getValue(FACING);
         world.setBlockState(pos, state.withProperty(ACTIVE, true).withProperty(FACING, blockFacing), 3);
         spawnPortalBlocks(world, pos, facing, portalId);
 
-
-        if (!player.capabilities.isCreativeMode) {
-            player.getHeldItem(hand).damageItem(1, player);
-        }
+        // Удалено повреждение предмета, так как теперь предмет полностью потребляется в onBlockActivated
 
         createLinkedPortal(world, pos, facing, portalId);
-
     }
 
     private void spawnPortalBlocks(World world, BlockPos pos, EnumFacing facing, UUID portalId) {

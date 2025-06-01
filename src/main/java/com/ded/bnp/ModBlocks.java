@@ -108,10 +108,10 @@ public class ModBlocks {
         Item item = Item.getItemFromBlock(block);
         String registryName = item.getTranslationKey().substring(5);
         ModelResourceLocation modelLoc = new ModelResourceLocation(Tags.MODID + ":" + registryName, "inventory");
-        
+
         // Добавляем логирование регистрации рендера
         FMLLog.log(Level.INFO, "[BNP] Регистрация рендера для блока: " + block.getTranslationKey() + ", модель: " + modelLoc);
-        
+
         try {
             // Проверяем наличие текстуры, если это портал
             if (block instanceof BlockCustomPortal) {
@@ -123,7 +123,7 @@ public class ModBlocks {
                     FMLLog.log(Level.ERROR, "[BNP] Ошибка при проверке текстуры портала: " + e.getMessage());
                 }
             }
-            
+
             Minecraft.getMinecraft().getRenderItem().getItemModelMesher().register(item, 0, modelLoc);
             FMLLog.log(Level.INFO, "[BNP] Рендер для блока " + block.getTranslationKey() + " успешно зарегистрирован");
         } catch (Exception e) {

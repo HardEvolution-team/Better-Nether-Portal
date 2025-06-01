@@ -6,6 +6,7 @@ import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
@@ -332,5 +333,46 @@ public class BlockCustomPortal extends Block {
     @Override
     public ItemStack getItem(World worldIn, BlockPos pos, IBlockState state) {
         return ItemStack.EMPTY;
+    }
+    
+    /**
+     * Вызывается при разрушении блока портала
+     * Если портал был активен, инициирует дроп предмета активации с ядра
+     */
+    @Override
+    public void breakBlock(World world, BlockPos pos, IBlockState state) {
+        if (!world.isRemote) {
+            // Находим ядро портала
+            TileEntityPortalCore core = findPortalCore(world, pos, 5);
+            if (core != null && core.isActive()) {
+                // Если ядро активно, дропаем предмет активации
+                ItemStack activationItem = core.getActivationItem();
+                if (!activationItem.isEmpty()) {
+                    EntityItem entityItem = new EntityItem(
+                        world, 
+                        pos.getX() + 0.5, 
+                        pos.getY() + 0.5, 
+                        pos.getZ() + 0.5, 
+                        activationItem.copy()
+                    );
+                    world.spawnEntity(entityItem);
+                    
+                    // Очищаем предмет активации в ядре, чтобы избежать повторного дропа
+                    core.setActivationItem(ItemStack.EMPTY);
+                }
+                
+                // Деактивируем портал
+                core.setActive(false);
+                IBlockState coreState = world.getBlockState(core.getPos());
+                if (coreState.getBlock() instanceof BlockPortalCore) {
+                    world.setBlockState(core.getPos(), coreState.withProperty(BlockPortalCore.ACTIVE, false), 3);
+                }
+                
+                // Разрушаем противоположную сторону портала
+                core.breakLinkedPortalCompletely();
+            }
+        }
+        
+        super.breakBlock(world, pos, state);
     }
 }
