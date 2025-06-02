@@ -21,8 +21,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ITeleporter;
+import net.minecraftforge.fml.common.FMLLog;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.apache.logging.log4j.Level;
 
 import java.util.Random;
 import java.util.UUID;
@@ -31,9 +33,9 @@ import java.util.UUID;
  * Блок портала, через который происходит телепортация
  */
 public class BlockCustomPortal extends Block {
-    public static final PropertyEnum<EnumFacing> FACING = PropertyEnum.create("facing", EnumFacing.class, 
+    public static final PropertyEnum<EnumFacing> FACING = PropertyEnum.create("facing", EnumFacing.class,
             EnumFacing.NORTH, EnumFacing.SOUTH, EnumFacing.EAST, EnumFacing.WEST);
-    
+
     protected static final AxisAlignedBB NORTH_SOUTH_AABB = new AxisAlignedBB(0.0D, 0.0D, 0.375D, 1.0D, 1.0D, 0.625D);
     protected static final AxisAlignedBB EAST_WEST_AABB = new AxisAlignedBB(0.375D, 0.0D, 0.0D, 0.625D, 1.0D, 1.0D);
     protected static final AxisAlignedBB Y_AABB = new AxisAlignedBB(0.375D, 0.0D, 0.375D, 0.625D, 1.0D, 0.625D);
@@ -139,7 +141,7 @@ public class BlockCustomPortal extends Block {
 
     /**
      * Проверяет, может ли сущность телепортироваться через портал
-     * 
+     *
      * @param entity Сущность для проверки
      * @return true, если сущность может телепортироваться
      */
@@ -161,7 +163,7 @@ public class BlockCustomPortal extends Block {
 
     /**
      * Находит ядро портала в заданном радиусе
-     * 
+     *
      * @param world Мир
      * @param pos Позиция для поиска
      * @param radius Радиус поиска
@@ -217,7 +219,7 @@ public class BlockCustomPortal extends Block {
 
     /**
      * Обрабатывает телепортацию сущности через портал
-     * 
+     *
      * @param world Мир
      * @param pos Позиция портала
      * @param entity Телепортируемая сущность
@@ -227,52 +229,108 @@ public class BlockCustomPortal extends Block {
             return;
         }
 
+        if (entity instanceof EntityPlayerMP) {
+            // Принудительно загружаем чанк с порталом
+            world.getChunkProvider().getLoadedChunk(pos.getX() >> 4, pos.getZ() >> 4);
+        }
+
         TileEntity portalTE = world.getTileEntity(pos);
         if (!(portalTE instanceof TileEntityCustomPortal)) {
+            FMLLog.log(Level.ERROR, "[BNP] TileEntity портала не найден или имеет неверный тип");
             return;
         }
 
         TileEntityCustomPortal customPortal = (TileEntityCustomPortal) portalTE;
         UUID portalId = customPortal.getPortalId();
 
+        // Улучшенная логика поиска и обновления UUID
         if (portalId == null) {
+            FMLLog.log(Level.WARN, "[BNP] UUID портала не установлен, пытаемся найти ядро");
             TileEntityPortalCore core = findPortalCore(world, pos, 5);
             if (core != null && core.isActive()) {
                 portalId = core.getPortalId();
-                customPortal.setPortalId(portalId);
-                customPortal.setCorePos(core.getPos());
-                customPortal.setFacing(core.getFacing());
+                if (portalId != null) {
+                    FMLLog.log(Level.INFO, "[BNP] Найден UUID ядра: %s", portalId.toString());
+                    customPortal.setPortalId(portalId);
+                    customPortal.setCorePos(core.getPos());
+                    customPortal.setFacing(core.getFacing());
+                } else {
+                    FMLLog.log(Level.ERROR, "[BNP] UUID ядра не установлен");
+                    return;
+                }
             } else {
+                FMLLog.log(Level.ERROR, "[BNP] Не удалось найти активное ядро портала");
                 return;
             }
         }
 
         TileEntityPortalCore core = findPortalCore(world, pos, 5);
-        if (core == null || !core.isActive() || core.getLinkedPortalPos() == null) {
+        if (core == null) {
+            FMLLog.log(Level.ERROR, "[BNP] Не удалось найти ядро портала");
+            return;
+        }
+
+        if (!core.isActive()) {
+            FMLLog.log(Level.ERROR, "[BNP] Ядро портала неактивно");
+            return;
+        }
+
+        if (core.getLinkedPortalPos() == null) {
+            FMLLog.log(Level.ERROR, "[BNP] Позиция связанного портала не установлена");
             return;
         }
 
         int targetDimension = core.getLinkedDimension();
         MinecraftServer server = world.getMinecraftServer();
         if (server == null) {
+            FMLLog.log(Level.ERROR, "[BNP] Не удалось получить доступ к серверу");
             return;
         }
 
         WorldServer targetWorld = server.getWorld(targetDimension);
         if (targetWorld == null) {
+            FMLLog.log(Level.ERROR, "[BNP] Не удалось получить доступ к целевому измерению: %d", targetDimension);
             return;
         }
 
         BlockPos linkedPos = core.getLinkedPortalPos();
+        FMLLog.log(Level.INFO, "[BNP] Позиция связанного портала: %s в измерении %d", linkedPos.toString(), targetDimension);
+
+        // Проверяем, загружен ли чанк с целевым порталом
+        if (!targetWorld.isBlockLoaded(linkedPos)) {
+            FMLLog.log(Level.WARN, "[BNP] Чанк с целевым порталом не загружен, загружаем...");
+            targetWorld.getChunkProvider().loadChunk(linkedPos.getX() >> 4, linkedPos.getZ() >> 4);
+
+            // Ждем небольшую задержку для полной загрузки чанка
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                // Игнорируем прерывание
+            }
+        }
 
         TileEntity linkedTe = targetWorld.getTileEntity(linkedPos);
         if (!(linkedTe instanceof TileEntityPortalCore)) {
+            FMLLog.log(Level.ERROR, "[BNP] TileEntity связанного ядра не найден или имеет неверный тип");
             return;
         }
 
         TileEntityPortalCore linkedCore = (TileEntityPortalCore) linkedTe;
-        if (!linkedCore.isActive() || !portalId.equals(linkedCore.getPortalId())) {
+        if (!linkedCore.isActive()) {
+            FMLLog.log(Level.ERROR, "[BNP] Связанное ядро неактивно");
             return;
+        }
+
+        // Проверка и восстановление UUID, если они не совпадают
+        if (!portalId.equals(linkedCore.getPortalId())) {
+            FMLLog.log(Level.WARN, "[BNP] UUID порталов не совпадают, восстанавливаем связь");
+            FMLLog.log(Level.INFO, "[BNP] Исходный UUID: %s, Целевой UUID: %s",
+                       portalId.toString(),
+                       linkedCore.getPortalId() != null ? linkedCore.getPortalId().toString() : "null");
+
+            // Синхронизируем UUID между порталами
+            linkedCore.setPortalId(portalId);
+            return; // Пропускаем текущую попытку телепортации, чтобы дать время на синхронизацию
         }
 
         EnumFacing facing = linkedCore.getFacing();
@@ -288,12 +346,17 @@ public class BlockCustomPortal extends Block {
             EntityPlayerMP player = (EntityPlayerMP) entity;
             player.addPotionEffect(new PotionEffect(PotionEffectsCustom.PORTAL_COOLDOWN, 100, 0, false, false));
 
+            FMLLog.log(Level.INFO, "[BNP] Телепортируем игрока %s в измерение %d на позицию [%.2f, %.2f, %.2f]",
+                       player.getName(), targetDimension, xPos, yPos, zPos);
+
             player.changeDimension(targetDimension, new ITeleporter() {
                 @Override
                 public void placeEntity(World world, Entity entity, float yaw) {
                     entity.setLocationAndAngles(xPos, yPos, zPos, entity.rotationYaw, entity.rotationPitch);
                 }
             });
+
+            FMLLog.log(Level.INFO, "[BNP] Телепортация завершена");
         }
 
         world.playSound(null, pos, SoundEvents.BLOCK_PORTAL_TRAVEL, SoundCategory.BLOCKS, 0.5F, world.rand.nextFloat() * 0.4F + 0.8F);
@@ -334,7 +397,7 @@ public class BlockCustomPortal extends Block {
     public ItemStack getItem(World worldIn, BlockPos pos, IBlockState state) {
         return ItemStack.EMPTY;
     }
-    
+
     /**
      * Вызывается при разрушении блока портала
      * Если портал был активен, инициирует дроп предмета активации с ядра
@@ -349,30 +412,30 @@ public class BlockCustomPortal extends Block {
                 ItemStack activationItem = core.getActivationItem();
                 if (!activationItem.isEmpty()) {
                     EntityItem entityItem = new EntityItem(
-                        world, 
-                        pos.getX() + 0.5, 
-                        pos.getY() + 0.5, 
-                        pos.getZ() + 0.5, 
+                        world,
+                        pos.getX() + 0.5,
+                        pos.getY() + 0.5,
+                        pos.getZ() + 0.5,
                         activationItem.copy()
                     );
                     world.spawnEntity(entityItem);
-                    
+
                     // Очищаем предмет активации в ядре, чтобы избежать повторного дропа
                     core.setActivationItem(ItemStack.EMPTY);
                 }
-                
+
                 // Деактивируем портал
                 core.setActive(false);
                 IBlockState coreState = world.getBlockState(core.getPos());
                 if (coreState.getBlock() instanceof BlockPortalCore) {
                     world.setBlockState(core.getPos(), coreState.withProperty(BlockPortalCore.ACTIVE, false), 3);
                 }
-                
+
                 // Разрушаем противоположную сторону портала
                 core.breakLinkedPortalCompletely();
             }
         }
-        
+
         super.breakBlock(world, pos, state);
     }
 }

@@ -102,7 +102,7 @@ public class BlockPortalCore extends Block {
     public TileEntity createTileEntity(World world, IBlockState state) {
         return new TileEntityPortalCore();
     }
-    
+
     /**
      * Вызывается при разрушении блока
      * Различает разрушение игроком и системой
@@ -113,33 +113,33 @@ public class BlockPortalCore extends Block {
             TileEntity te = world.getTileEntity(pos);
             if (te instanceof TileEntityPortalCore) {
                 TileEntityPortalCore core = (TileEntityPortalCore) te;
-                
+
                 // Если ядро было активным и разрушено игроком, выпадает предмет активации
                 if (core.isActive() && core.isBrokenByPlayer() && !core.getActivationItem().isEmpty()) {
                     EntityItem entityItem = new EntityItem(
-                        world, 
-                        pos.getX() + 0.5, 
-                        pos.getY() + 0.5, 
-                        pos.getZ() + 0.5, 
-                        core.getActivationItem().copy()
+                            world,
+                            pos.getX() + 0.5,
+                            pos.getY() + 0.5,
+                            pos.getZ() + 0.5,
+                            core.getActivationItem().copy()
                     );
                     world.spawnEntity(entityItem);
-                    
+
                     // Очищаем предмет активации, чтобы избежать повторного дропа
                     core.setActivationItem(ItemStack.EMPTY);
                 }
-                
+
                 // Разрушаем блоки портала на своей стороне
                 core.breakPortal();
-                
+
                 // Всегда разрушаем противоположную сторону полностью
                 core.breakLinkedPortalCompletely();
             }
         }
-        
+
         super.breakBlock(world, pos, state);
     }
-    
+
     /**
      * Вызывается при добыче блока игроком
      * Устанавливает флаг разрушения игроком
@@ -152,7 +152,7 @@ public class BlockPortalCore extends Block {
                 ((TileEntityPortalCore) te).setBrokenByPlayer(true);
             }
         }
-        
+
         super.onBlockHarvested(world, pos, state, player);
     }
 
@@ -162,20 +162,23 @@ public class BlockPortalCore extends Block {
         if (!world.isRemote && stack.getItem() == ModConfig.getPortalActivatorItem() && !state.getValue(ACTIVE)) {
             EnumFacing portalFacing = checkFrame(world, pos);
             if (portalFacing != null) {
-                // Store the activation item for potential drop when core is broken
+                // Получаем TileEntity ядра
                 TileEntity te = world.getTileEntity(pos);
                 if (te instanceof TileEntityPortalCore) {
-                    ((TileEntityPortalCore) te).setActivationItem(stack.copy());
+                    TileEntityPortalCore core = (TileEntityPortalCore) te;
+
+                    // Сохраняем предмет активации
+                    core.setActivationItem(stack.copy());
                 }
-                
-                // Activate the portal
+
+                // Активируем портал
                 activatePortal(world, pos, state, portalFacing, player, hand);
-                
-                // Consume the activation item (remove from player's hand/inventory)
+
+                // Потребляем предмет активации
                 if (!player.capabilities.isCreativeMode) {
                     stack.shrink(1);
                 }
-                
+
                 return true;
             }
         }
@@ -211,18 +214,19 @@ public class BlockPortalCore extends Block {
             }
 
             if (valid) {
-
                 return facing;
             }
         }
         return null;
     }
+
     @SideOnly(Side.CLIENT)
     public void initModel() {
         FMLLog.log(Level.INFO, "[BNP] Инициализация модели для PortalCore");
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this), 0,
                 new ModelResourceLocation(getRegistryName(), "inventory"));
     }
+
     private void activatePortal(World world, BlockPos pos, IBlockState state, EnumFacing facing, EntityPlayer player, EnumHand hand) {
         TileEntity te = world.getTileEntity(pos);
         if (!(te instanceof TileEntityPortalCore)) {
@@ -230,7 +234,13 @@ public class BlockPortalCore extends Block {
         }
 
         TileEntityPortalCore core = (TileEntityPortalCore) te;
-        UUID portalId = UUID.randomUUID();
+
+        // Проверяем, был ли портал активен ранее и имеет ли он UUID
+        UUID existingId = core.getPortalId();
+        UUID portalId = (existingId != null) ? existingId : UUID.randomUUID();
+
+        FMLLog.log(Level.INFO, "[BNP] Активация портала с UUID: %s", portalId.toString());
+
         core.setPortalId(portalId);
         core.setActive(true);
         core.setFacing(facing);
@@ -238,15 +248,19 @@ public class BlockPortalCore extends Block {
         // Сохраняем текущее направление блока при активации
         EnumFacing blockFacing = state.getValue(FACING);
         world.setBlockState(pos, state.withProperty(ACTIVE, true).withProperty(FACING, blockFacing), 3);
+
+        // Сохраняем предмет активации
+        if (!player.capabilities.isCreativeMode) {
+            ItemStack activationItem = player.getHeldItem(hand).copy();
+            activationItem.setCount(1);
+            core.setActivationItem(activationItem);
+        }
+
         spawnPortalBlocks(world, pos, facing, portalId);
-
-        // Удалено повреждение предмета, так как теперь предмет полностью потребляется в onBlockActivated
-
         createLinkedPortal(world, pos, facing, portalId);
     }
 
     private void spawnPortalBlocks(World world, BlockPos pos, EnumFacing facing, UUID portalId) {
-
         EnumFacing.Axis axis = facing.getAxis();
 
         // Создаем все блоки портала внутри рамки 5x5
@@ -265,7 +279,6 @@ public class BlockPortalCore extends Block {
                     TileEntityCustomPortal portalTE = (TileEntityCustomPortal) te;
                     portalTE.setPortalId(portalId);
                     portalTE.setCorePos(pos);
-
                 }
 
                 // Регистрируем блок портала в ядре
@@ -278,28 +291,33 @@ public class BlockPortalCore extends Block {
     }
 
     private void createLinkedPortal(World world, BlockPos pos, EnumFacing facing, UUID portalId) {
-
         try {
             int targetDimension = world.provider.getDimension() == 0 ? -1 : 0;
 
             WorldServer targetWorld = world.getMinecraftServer().getWorld(targetDimension);
             if (targetWorld == null) {
-
+                FMLLog.log(Level.ERROR, "[BNP] Не удалось получить доступ к целевому измерению: %d", targetDimension);
                 return;
             }
-            BlockPos targetPos = calculateTargetPosition(world, pos);
 
+            BlockPos targetPos = calculateTargetPosition(world, pos);
+            FMLLog.log(Level.INFO, "[BNP] Рассчитанная целевая позиция: %s", targetPos.toString());
 
             targetPos = findSafeLocation(targetWorld, targetPos, facing);
-
+            FMLLog.log(Level.INFO, "[BNP] Найдена безопасная локация: %s", targetPos.toString());
 
             buildPortal(targetWorld, targetPos, facing);
-
+            FMLLog.log(Level.INFO, "[BNP] Построена рамка портала");
 
             // Устанавливаем состояние блока ядра как активное, сохраняя направление
-            targetWorld.setBlockState(targetPos, this.getDefaultState()
+            boolean coreStateSet = targetWorld.setBlockState(targetPos, this.getDefaultState()
                     .withProperty(FACING, facing)
                     .withProperty(ACTIVE, true), 3);
+
+            if (!coreStateSet) {
+                FMLLog.log(Level.ERROR, "[BNP] Не удалось установить блок ядра в целевом мире");
+                return;
+            }
 
             // Настраиваем ядро второго портала
             TileEntity te = targetWorld.getTileEntity(targetPos);
@@ -315,11 +333,14 @@ public class BlockPortalCore extends Block {
                 TileEntity sourceTE = world.getTileEntity(pos);
                 if (sourceTE instanceof TileEntityPortalCore) {
                     ((TileEntityPortalCore) sourceTE).setLinkedPortal(targetPos, targetDimension);
+                    FMLLog.log(Level.INFO, "[BNP] Порталы успешно связаны");
+                } else {
+                    FMLLog.log(Level.ERROR, "[BNP] Не удалось получить TileEntity исходного ядра");
                 }
 
                 // Спавним блоки портала
                 spawnPortalBlocks(targetWorld, targetPos, facing, portalId);
-
+                FMLLog.log(Level.INFO, "[BNP] Созданы блоки портала");
 
                 // Регистрируем блоки рамки в ядре
                 registerFrameBlocks(targetWorld, targetPos, facing, targetCore);
@@ -327,9 +348,12 @@ public class BlockPortalCore extends Block {
                 // Обновляем состояние блоков
                 targetWorld.notifyBlockUpdate(targetPos, targetWorld.getBlockState(targetPos), targetWorld.getBlockState(targetPos), 3);
                 world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
-
+            } else {
+                FMLLog.log(Level.ERROR, "[BNP] Не удалось получить TileEntity целевого ядра");
             }
         } catch (Exception e) {
+            FMLLog.log(Level.ERROR, "[BNP] Ошибка при создании связанного портала: %s", e.toString());
+            e.printStackTrace();
         }
     }
 
