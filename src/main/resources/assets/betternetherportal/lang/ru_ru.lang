@@ -1,0 +1,31 @@
+tile.betternetherportal.portal_core.name=Ядро портала
+tile.betternetherportal.better_portal.name=Портал в Незер
+item.betternetherportal.portal_core.name=Ядро портала
+
+message.betternetherportal.already_active=Это ядро портала уже активно.
+message.betternetherportal.no_frame=Вокруг ядра нет подходящей рамки портала.
+message.betternetherportal.link_info=Связанный портал: %s, координаты %s, %s, %s
+message.betternetherportal.not_linked=Это ядро портала ни к чему не привязано.
+
+tooltip.betternetherportal.portal_core.activation=Активация: %s
+
+betternetherportal.config.title=Better Nether Portal
+
+itemGroup.betternetherportal=Better Nether Portal
+
+betternetherportal.config.disableVanillaPortal=Отключить обычный портал
+betternetherportal.config.disableVanillaPortal.tooltip=Отключает зажигание обычного портала в Незер. Нужно использовать ядро портала.
+betternetherportal.config.activationItem=Предмет активации
+betternetherportal.config.activationItem.tooltip=Registry-имя предмета, активирующего ядро портала (например, minecraft:ender_pearl).
+betternetherportal.config.strict5x5Frame=Строгая рамка 5x5
+betternetherportal.config.strict5x5Frame.tooltip=Если включено, ядро активируется только в точной рамке 5x5 с ядром снизу по центру. Если выключено, подойдёт любая замкнутая рамка.
+betternetherportal.config.frameBlock=Блок рамки
+betternetherportal.config.frameBlock.tooltip=Registry-имя блока, из которого должна быть сделана рамка портала.
+betternetherportal.config.teleportCooldownTicks=Задержка телепорта (тики)
+betternetherportal.config.teleportCooldownTicks.tooltip=Задержка в тиках, прежде чем только что телепортированная сущность сможет телепортироваться снова.
+betternetherportal.config.allowMobTeleport=Телепорт мобов
+betternetherportal.config.allowMobTeleport.tooltip=Если выключено, через порталы могут ходить только игроки.
+betternetherportal.config.playTeleportSound=Звук телепорта
+betternetherportal.config.playTeleportSound.tooltip=Проигрывать звук портала при телепортации.
+betternetherportal.config.netherCoordinateScale=Масштаб координат Незера
+betternetherportal.config.netherCoordinateScale.tooltip=Горизонтальный масштаб координат между Верхним миром и Незером.

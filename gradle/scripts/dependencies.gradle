@@ -1,0 +1,28 @@
+repositories {
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+    }
+    mavenCentral()
+    mavenLocal() // Must be last for caching to work
+}
+
+dependencies {
+    // javax.annotation.Nullable (provided by Forge at runtime)
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+
+    // Example - CurseMaven dependencies:
+    // modImplementation 'curse.maven:had-enough-items-557549:4543375' << slug-projectId:fileId
+    // Example - Modrinth dependencies:
+    // modImplementation 'maven.modrinth:jei:4.16.1.1000'
+
+    // Common dependency types (configuration):
+    // implementation = dependency available at both compile time and runtime
+    // runtimeOnly = runtime dependency
+    // compileOnly = compile time dependency
+    // modImplementation / modCompileOnly / modRuntimeOnly = mods (remapped by Unimined)
+}

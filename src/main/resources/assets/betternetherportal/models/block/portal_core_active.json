@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "betternetherportal:blocks/portal_core_active",
+    "down": "betternetherportal:blocks/portal_core_active",
+    "up": "betternetherportal:blocks/portal_core_active",
+    "north": "betternetherportal:blocks/portal_core_active",
+    "east": "betternetherportal:blocks/portal_core_active",
+    "south": "betternetherportal:blocks/active_portal_face",
+    "west": "betternetherportal:blocks/portal_core_active"
+  }
+}

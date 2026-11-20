@@ -1,0 +1,31 @@
+tile.betternetherportal.portal_core.name=Portal Core
+tile.betternetherportal.better_portal.name=Nether Portal
+item.betternetherportal.portal_core.name=Portal Core
+
+message.betternetherportal.already_active=This portal core is already active.
+message.betternetherportal.no_frame=No valid portal frame around this core.
+message.betternetherportal.link_info=Linked portal: %s at %s, %s, %s
+message.betternetherportal.not_linked=This portal core is not linked to another portal.
+
+tooltip.betternetherportal.portal_core.activation=Activate with: %s
+
+betternetherportal.config.title=Better Nether Portal
+
+itemGroup.betternetherportal=Better Nether Portal
+
+betternetherportal.config.disableVanillaPortal=Disable vanilla portal
+betternetherportal.config.disableVanillaPortal.tooltip=Disable the vanilla nether portal ignition. The portal core must be used instead.
+betternetherportal.config.activationItem=Activation item
+betternetherportal.config.activationItem.tooltip=Registry name of the item used to activate a portal core (e.g. minecraft:ender_pearl).
+betternetherportal.config.strict5x5Frame=Strict 5x5 frame
+betternetherportal.config.strict5x5Frame.tooltip=If true, the core only activates inside an exact 5x5 frame with the core at the bottom-center. If false, any closed frame is accepted.
+betternetherportal.config.frameBlock=Frame block
+betternetherportal.config.frameBlock.tooltip=Registry name of the block the portal frame must be made of.
+betternetherportal.config.teleportCooldownTicks=Teleport cooldown (ticks)
+betternetherportal.config.teleportCooldownTicks.tooltip=Cooldown in ticks before an entity that just teleported can teleport again.
+betternetherportal.config.allowMobTeleport=Allow mobs to teleport
+betternetherportal.config.allowMobTeleport.tooltip=If false, only players can travel through portals.
+betternetherportal.config.playTeleportSound=Teleport sound
+betternetherportal.config.playTeleportSound.tooltip=Play the portal travel sound when an entity teleports.
+betternetherportal.config.netherCoordinateScale=Nether coordinate scale
+betternetherportal.config.netherCoordinateScale.tooltip=Horizontal coordinate scale between the Overworld and the Nether.

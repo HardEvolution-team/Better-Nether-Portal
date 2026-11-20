@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "OOO",
+    "OPO",
+    "OOO"
+  ],
+  "key": {
+    "O": { "item": "minecraft:obsidian" },
+    "P": { "item": "minecraft:ender_pearl" }
+  },
+  "result": {
+    "item": "betternetherportal:portal_core",
+    "count": 1
+  }
+}

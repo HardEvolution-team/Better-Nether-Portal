@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "axis=x": { "model": "betternetherportal:better_portal_ns" },
+    "axis=z": { "model": "betternetherportal:better_portal_ew" }
+  }
+}
