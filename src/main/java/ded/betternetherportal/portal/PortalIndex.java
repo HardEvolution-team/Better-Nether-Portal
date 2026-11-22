@@ -7,13 +7,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-
-
-
-
-
-
-
 public final class PortalIndex {
 
     private PortalIndex() {}
@@ -62,7 +55,6 @@ public final class PortalIndex {
         return core == null ? null : BlockPos.fromLong(core);
     }
 
-    
     public static void clear() {
         INTERIOR.clear();
         FRAME.clear();

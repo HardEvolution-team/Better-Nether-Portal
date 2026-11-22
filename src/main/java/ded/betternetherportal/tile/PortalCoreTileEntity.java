@@ -1,5 +1,12 @@
 package ded.betternetherportal.tile;
 
+import ded.betternetherportal.config.ModConfig;
+import ded.betternetherportal.portal.PortalManager;
+import net.minecraft.util.ITickable;
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagLong;
@@ -15,14 +22,57 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-
-
-
-
-
-public class PortalCoreTileEntity extends TileEntity {
+public class PortalCoreTileEntity extends TileEntity implements ITickable {
 
     private static final int NO_DIM = Integer.MIN_VALUE;
+
+    private int energyStored;
+    
+    private boolean generatedDestination;
+
+    public void setGeneratedDestination(boolean value) {
+        generatedDestination = value;
+        markDirty();
+    }
+    private final IEnergyStorage energy = new IEnergyStorage() {
+        @Override public int receiveEnergy(int maxReceive, boolean simulate) {
+            int received = Math.min(Math.max(0, maxReceive), Math.min(ModConfig.portalMaxReceive,
+                    Math.max(0, ModConfig.portalEnergyCapacity - energyStored)));
+            if (!simulate && received > 0) { energyStored += received; markDirty(); }
+            return received;
+        }
+        @Override public int extractEnergy(int maxExtract, boolean simulate) { return 0; }
+        @Override public int getEnergyStored() { return energyStored; }
+        @Override public int getMaxEnergyStored() { return ModConfig.portalEnergyCapacity; }
+        @Override public boolean canExtract() { return false; }
+        @Override public boolean canReceive() { return true; }
+    };
+
+    public int getEnergyStored() { return energyStored; }
+    public boolean canPayActivation() { return !ModConfig.requirePortalEnergy || energyStored >= ModConfig.portalActivationCost; }
+    public void payActivation() {
+        if (ModConfig.requirePortalEnergy) {
+            energyStored = Math.max(0, energyStored - ModConfig.portalActivationCost);
+            markDirty();
+        }
+    }
+    @Override public void update() {
+        if (world == null || world.isRemote || !active || !ModConfig.requirePortalEnergy || generatedDestination) return;
+        int cost = ModConfig.portalEnergyPerTick;
+        if (energyStored < cost) {
+            PortalManager.deactivateByFrameBreak(world, pos);
+        } else if (cost > 0) {
+            energyStored -= cost;
+            if (world.getTotalWorldTime() % 20 == 0) markDirty();
+        }
+    }
+    @Override public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
+        return capability == CapabilityEnergy.ENERGY || super.hasCapability(capability, facing);
+    }
+    @Nullable @Override public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing) {
+        if (capability == CapabilityEnergy.ENERGY) return CapabilityEnergy.ENERGY.cast(energy);
+        return super.getCapability(capability, facing);
+    }
 
     private boolean active;
     private UUID id;
@@ -43,12 +93,10 @@ public class PortalCoreTileEntity extends TileEntity {
         return id;
     }
 
-    
     public Set<BlockPos> getInterior() {
         return Collections.unmodifiableSet(interior);
     }
 
-    
     public Set<BlockPos> getFrame() {
         return Collections.unmodifiableSet(frame);
     }
@@ -113,7 +161,6 @@ public class PortalCoreTileEntity extends TileEntity {
         }
     }
 
-    
     @Override
     public void validate() {
         super.validate();
@@ -141,12 +188,6 @@ public class PortalCoreTileEntity extends TileEntity {
         return frame.contains(pos);
     }
 
-    
-
-
-
-
-
     @Override
     public boolean shouldRefresh(net.minecraft.world.World world, BlockPos pos,
                                  net.minecraft.block.state.IBlockState oldState,
@@ -158,6 +199,8 @@ public class PortalCoreTileEntity extends TileEntity {
     public NBTTagCompound writeToNBT(NBTTagCompound compound) {
         super.writeToNBT(compound);
         compound.setBoolean("active", active);
+        compound.setInteger("energyStored", energyStored);
+        compound.setBoolean("generatedDestination", generatedDestination);
         if (id != null) {
             compound.setUniqueId("id", id);
         }
@@ -174,6 +217,8 @@ public class PortalCoreTileEntity extends TileEntity {
     public void readFromNBT(NBTTagCompound compound) {
         super.readFromNBT(compound);
         active = compound.getBoolean("active");
+        energyStored = Math.max(0, Math.min(ModConfig.portalEnergyCapacity, compound.getInteger("energyStored")));
+        generatedDestination = compound.getBoolean("generatedDestination");
         if (compound.hasUniqueId("id")) {
             id = compound.getUniqueId("id");
         }
@@ -212,7 +257,6 @@ public class PortalCoreTileEntity extends TileEntity {
         }
     }
 
-    
     @Override
     public NBTTagCompound getUpdateTag() {
         return super.writeToNBT(new NBTTagCompound());

@@ -26,10 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-
-
-
-
 public final class PortalManager {
 
     private PortalManager() {}
@@ -38,12 +34,7 @@ public final class PortalManager {
     private static final int NETHER = -1;
     private static final int OVERWORLD = 0;
 
-    
     private static final Set<Long> cascadeGuard = new HashSet<>();
-
-    
-    
-    
 
     public static boolean tryActivate(World world, BlockPos corePos, @Nullable EntityPlayer player) {
         FrameResult frame = detectFrame(world, corePos);
@@ -51,12 +42,10 @@ public final class PortalManager {
             return false;
         }
 
-        fillPortal(world, frame);
-
         PortalCoreTileEntity core = getCore(world, corePos);
-        if (core == null) {
-            return false;
-        }
+        if (core == null || !core.canPayActivation()) return false;
+        fillPortal(world, frame);
+        core.payActivation();
         core.activate(frame.frame, frame.interior);
         world.setBlockState(corePos,
                 world.getBlockState(corePos)
@@ -66,12 +55,6 @@ public final class PortalManager {
         buildLinkedPortal(world, corePos, core);
         return true;
     }
-
-    
-
-
-
-
 
     private static EnumFacing facingForAxis(EnumFacing.Axis axis, @Nullable EntityPlayer player) {
         if (axis == EnumFacing.Axis.X) {
@@ -101,10 +84,6 @@ public final class PortalManager {
         }
     }
 
-    
-    
-    
-
     private static final class FrameResult {
         final Set<BlockPos> frame;
         final Set<BlockPos> interior;
@@ -133,7 +112,6 @@ public final class PortalManager {
         return r;
     }
 
-    
     @Nullable
     private static FrameResult floodFill(World world, BlockPos corePos, EnumFacing.Axis axis) {
         EnumFacing.Axis planeAxis = axis;
@@ -180,7 +158,6 @@ public final class PortalManager {
         return new FrameResult(frame, interior, planeAxis);
     }
 
-    
     @Nullable
     private static FrameResult detectStrict5x5(World world, BlockPos corePos, EnumFacing.Axis axis) {
         EnumFacing along = (axis == EnumFacing.Axis.X) ? EnumFacing.EAST : EnumFacing.SOUTH;
@@ -226,10 +203,6 @@ public final class PortalManager {
                 || state.getBlock() instanceof BetterPortalBlock;
     }
 
-    
-    
-    
-
     private static void buildLinkedPortal(World world, BlockPos corePos, PortalCoreTileEntity core) {
         if (world.isRemote || world.getMinecraftServer() == null) {
             return;
@@ -245,7 +218,6 @@ public final class PortalManager {
         BlockPos scaled = scaleForDimension(corePos, currentDim, targetDim);
         BlockPos targetCorePos = findBuildableSpot(target, scaled);
 
-        
         PortalCoreTileEntity existing = getCore(target, targetCorePos);
         if (existing != null && existing.isActive()) {
             cross(core, currentDim, corePos, existing, targetDim, targetCorePos);
@@ -257,6 +229,7 @@ public final class PortalManager {
         if (targetCore == null) {
             return;
         }
+        targetCore.setGeneratedDestination(true);
         cross(core, currentDim, corePos, targetCore, targetDim, targetCorePos);
     }
 
@@ -266,7 +239,6 @@ public final class PortalManager {
         b.setLink(dimA, posA);
     }
 
-    
     private static void build5x5(WorldServer world, BlockPos corePos) {
         Block frameBlock = ModConfig.getFrameBlock();
         EnumFacing along = EnumFacing.EAST;
@@ -290,7 +262,6 @@ public final class PortalManager {
             }
         }
 
-        
         world.setBlockState(corePos, BetterNetherPortal.portalCoreBlock.getDefaultState()
                 .withProperty(PortalCoreBlock.ACTIVE, false), 2);
         frame.add(corePos);
@@ -325,7 +296,6 @@ public final class PortalManager {
         return Math.max(10, Math.min(y, 240));
     }
 
-    
     private static BlockPos findBuildableSpot(WorldServer world, BlockPos desired) {
         
         for (int dx = -4; dx <= 4; dx++) {
@@ -359,10 +329,6 @@ public final class PortalManager {
         return desired;
     }
 
-    
-    
-    
-
     public static void onEntityInPortal(World world, BlockPos portalPos, Entity entity) {
         if (!ModConfig.allowMobTeleport && !(entity instanceof EntityPlayer)) {
             return;
@@ -391,8 +357,6 @@ public final class PortalManager {
 
         entity.timeUntilPortal = ModConfig.teleportCooldownTicks;
 
-        
-        
         BlockPos dest = destinationSpot(targetWorld, targetCorePos);
         PortalTeleporter teleporter = new PortalTeleporter(targetWorld, dest);
 
@@ -409,13 +373,11 @@ public final class PortalManager {
                         entity.rotationYaw, entity.rotationPitch);
             }
         } else {
-            
-            
+
             entity.changeDimension(targetDim, teleporter);
         }
     }
 
-    
     private static void playTravelEffects(World world, BlockPos pos) {
         if (!ModConfig.playTeleportSound || !(world instanceof WorldServer)) {
             return;
@@ -424,12 +386,6 @@ public final class PortalManager {
                 SoundEvents.BLOCK_PORTAL_TRAVEL, SoundCategory.PLAYERS, 0.4F,
                 world.rand.nextFloat() * 0.2F + 0.9F);
     }
-
-    
-
-
-
-
 
     private static BlockPos destinationSpot(WorldServer world, BlockPos corePos) {
         IBlockState state = world.getBlockState(corePos);
@@ -451,16 +407,6 @@ public final class PortalManager {
         }
     }
 
-    
-    
-    
-
-    
-
-
-
-
-
     @Nullable
     public static PortalCoreTileEntity findOwningCore(World world, BlockPos pos, boolean interiorOwner) {
         BlockPos corePos = PortalIndex.find(world.provider.getDimension(), pos, interiorOwner);
@@ -477,15 +423,6 @@ public final class PortalManager {
         boolean owns = interiorOwner ? core.isInInterior(pos) : core.isInFrame(pos);
         return owns ? core : null;
     }
-
-    
-    
-    
-
-    
-
-
-
 
     public static void deactivateByFrameBreak(World world, BlockPos corePos) {
         PortalCoreTileEntity core = getCore(world, corePos);
@@ -510,12 +447,10 @@ public final class PortalManager {
 
         boolean wasActive = state.getValue(PortalCoreBlock.ACTIVE);
 
-        
         if (core != null) {
             removeInterior(world, core.getInterior());
         }
 
-        
         if (!guarded) {
             if (wasActive) {
                 dropStack(world, pos, new ItemStack(BetterNetherPortal.portalCoreItem));
@@ -526,7 +461,6 @@ public final class PortalManager {
             }
         }
 
-        
         if (!guarded && core != null && core.hasLink()) {
             destroyLinked(world, core.getLinkedDim(), core.getLinkedPos());
         }
@@ -546,8 +480,7 @@ public final class PortalManager {
             return;
         }
         cascadeGuard.add(linkedPos.toLong());
-        
-        
+
         target.setBlockToAir(linkedPos);
     }
 
@@ -569,10 +502,6 @@ public final class PortalManager {
         item.setDefaultPickupDelay();
         world.spawnEntity(item);
     }
-
-    
-    
-    
 
     @Nullable
     private static PortalCoreTileEntity getCore(World world, BlockPos pos) {

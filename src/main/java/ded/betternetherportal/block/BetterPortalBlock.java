@@ -20,11 +20,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nullable;
 import java.util.Random;
 
-
-
-
-
-
 public class BetterPortalBlock extends Block {
 
     public static final PropertyEnum<EnumFacing.Axis> AXIS =

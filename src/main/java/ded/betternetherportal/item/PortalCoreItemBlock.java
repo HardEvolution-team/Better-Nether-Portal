@@ -13,10 +13,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nullable;
 import java.util.List;
 
-
-
-
-
 public class PortalCoreItemBlock extends ItemBlock {
 
     public PortalCoreItemBlock(Block block) {

@@ -6,10 +6,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ITeleporter;
 
-
-
-
-
 public class PortalTeleporter implements ITeleporter {
 
     private final WorldServer world;

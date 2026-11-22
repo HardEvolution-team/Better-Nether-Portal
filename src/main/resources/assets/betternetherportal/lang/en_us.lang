@@ -29,3 +29,5 @@ betternetherportal.config.playTeleportSound=Teleport sound
 betternetherportal.config.playTeleportSound.tooltip=Play the portal travel sound when an entity teleports.
 betternetherportal.config.netherCoordinateScale=Nether coordinate scale
 betternetherportal.config.netherCoordinateScale.tooltip=Horizontal coordinate scale between the Overworld and the Nether.
+message.betternetherportal.portal_energy=Portal energy: %s / %s FE
+message.betternetherportal.not_enough_energy=Not enough FE: %s / %s

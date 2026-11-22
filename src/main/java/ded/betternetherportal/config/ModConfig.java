@@ -8,43 +8,32 @@ import net.minecraftforge.common.config.Configuration;
 
 import java.io.File;
 
-
-
-
-
-
 public final class ModConfig {
 
     private ModConfig() {}
 
-    
     public static boolean disableVanillaPortal = true;
 
-    
     public static String activationItem = "minecraft:ender_pearl";
-
-    
-
-
 
     public static boolean strict5x5Frame = false;
 
-    
     public static String frameBlock = "minecraft:obsidian";
 
-    
     public static int teleportCooldownTicks = 100;
 
-    
     public static boolean allowMobTeleport = true;
 
-    
     public static boolean playTeleportSound = true;
 
-    
     public static int netherCoordinateScale = 8;
 
-    
+    public static boolean requirePortalEnergy = false;
+    public static int portalEnergyCapacity = 100000;
+    public static int portalActivationCost = 10000;
+    public static int portalEnergyPerTick = 20;
+    public static int portalMaxReceive = 2000;
+
     private static Configuration config;
     private static Item cachedActivationItem;
     private static boolean activationItemResolved;
@@ -56,7 +45,6 @@ public final class ModConfig {
         sync();
     }
 
-    
     public static Configuration getConfig() {
         return config;
     }
@@ -65,6 +53,17 @@ public final class ModConfig {
         if (config == null) {
             return;
         }
+
+        requirePortalEnergy = config.getBoolean("requirePortalEnergy", "energy", false,
+                "Require Forge Energy to activate and maintain portals.");
+        portalEnergyCapacity = config.getInt("portalEnergyCapacity", "energy", 100000, 1, 100000000,
+                "Maximum FE stored in each portal core.");
+        portalActivationCost = config.getInt("portalActivationCost", "energy", 10000, 0, 100000000,
+                "FE consumed when activating a portal.");
+        portalEnergyPerTick = config.getInt("portalEnergyPerTick", "energy", 20, 0, 1000000,
+                "FE consumed per tick while the portal is active.");
+        portalMaxReceive = config.getInt("portalMaxReceive", "energy", 2000, 1, 10000000,
+                "Maximum FE received per tick through Forge Energy capability.");
 
         disableVanillaPortal = config.getBoolean(
                 "disableVanillaPortal", Configuration.CATEGORY_GENERAL, true,
@@ -99,8 +98,6 @@ public final class ModConfig {
                 "netherCoordinateScale", Configuration.CATEGORY_GENERAL, 8, 1, 64,
                 "Horizontal coordinate scale between the Overworld and the Nether when linking portals.");
 
-        
-        
         for (net.minecraftforge.common.config.Property prop
                 : config.getCategory(Configuration.CATEGORY_GENERAL).values()) {
             prop.setLanguageKey(Reference.MOD_ID + ".config." + prop.getName());
@@ -116,7 +113,6 @@ public final class ModConfig {
         }
     }
 
-    
     public static Item getActivationItem() {
         if (!activationItemResolved) {
             cachedActivationItem = Item.getByNameOrId(activationItem);
@@ -128,7 +124,6 @@ public final class ModConfig {
         return cachedActivationItem;
     }
 
-    
     public static Block getFrameBlock() {
         if (!frameBlockResolved) {
             cachedFrameBlock = Block.getBlockFromName(frameBlock);
@@ -140,7 +135,6 @@ public final class ModConfig {
         return cachedFrameBlock;
     }
 
-    
     public static ResourceLocation getFrameBlockName() {
         return new ResourceLocation(frameBlock);
     }

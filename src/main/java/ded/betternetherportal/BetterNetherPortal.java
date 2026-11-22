@@ -40,10 +40,6 @@ public class BetterNetherPortal {
 
     public static Item portalCoreItem;
 
-    
-
-
-
     public static final CreativeTabs CREATIVE_TAB = new CreativeTabs(Reference.MOD_ID) {
         @Override
         public ItemStack createIcon() {

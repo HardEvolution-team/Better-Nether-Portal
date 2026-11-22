@@ -1,8 +1,5 @@
 package {{ package }};
 
-
-
-
 public class Reference {
     private Reference() {}
 

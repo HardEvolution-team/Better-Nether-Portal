@@ -24,11 +24,6 @@ import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 
-
-
-
-
-
 public class PortalCoreBlock extends Block {
 
     public static final PropertyBool ACTIVE = PropertyBool.create("active");
@@ -56,9 +51,10 @@ public class PortalCoreBlock extends Block {
 
         TileEntity te = world.getTileEntity(pos);
 
-        
         if (player.isSneaking() && te instanceof PortalCoreTileEntity) {
             PortalCoreTileEntity core = (PortalCoreTileEntity) te;
+            player.sendMessage(new TextComponentTranslation("message.betternetherportal.portal_energy",
+                    core.getEnergyStored(), ModConfig.portalEnergyCapacity));
             if (core.hasLink()) {
                 BlockPos link = core.getLinkedPos();
                 String dimName = net.minecraft.world.DimensionType.getById(core.getLinkedDim()).getName();
@@ -81,6 +77,12 @@ public class PortalCoreBlock extends Block {
             return false;
         }
 
+        if (ModConfig.requirePortalEnergy && te instanceof PortalCoreTileEntity
+                && !((PortalCoreTileEntity) te).canPayActivation()) {
+            player.sendMessage(new TextComponentTranslation("message.betternetherportal.not_enough_energy",
+                    ((PortalCoreTileEntity) te).getEnergyStored(), ModConfig.portalActivationCost));
+            return true;
+        }
         if (PortalManager.tryActivate(world, pos, player)) {
             if (!player.isCreative()) {
                 held.shrink(1);
@@ -108,9 +110,7 @@ public class PortalCoreBlock extends Block {
 
     @Override
     public int quantityDropped(java.util.Random random) {
-        
-        
-        
+
         return 0;
     }
 

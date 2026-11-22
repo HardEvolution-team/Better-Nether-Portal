@@ -7,11 +7,6 @@ import net.minecraftforge.fml.client.IModGuiFactory;
 import java.util.Collections;
 import java.util.Set;
 
-
-
-
-
-
 public class ModGuiFactory implements IModGuiFactory {
 
     @Override

@@ -11,11 +11,6 @@ import net.minecraftforge.fml.client.config.IConfigElement;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
-
-
-
 public class ModGuiConfig extends GuiConfig {
 
     public ModGuiConfig(GuiScreen parent) {

@@ -29,3 +29,5 @@ betternetherportal.config.playTeleportSound=Звук телепорта
 betternetherportal.config.playTeleportSound.tooltip=Проигрывать звук портала при телепортации.
 betternetherportal.config.netherCoordinateScale=Масштаб координат Незера
 betternetherportal.config.netherCoordinateScale.tooltip=Горизонтальный масштаб координат между Верхним миром и Незером.
+message.betternetherportal.portal_energy=Энергия портала: %s / %s FE
+message.betternetherportal.not_enough_energy=Недостаточно энергии: %s / %s FE

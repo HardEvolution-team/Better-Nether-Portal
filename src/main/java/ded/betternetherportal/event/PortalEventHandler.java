@@ -11,11 +11,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-
-
-
-
-
 public class PortalEventHandler {
 
     @SubscribeEvent
@@ -27,13 +22,10 @@ public class PortalEventHandler {
         BlockPos pos = event.getPos();
         Block block = event.getState().getBlock();
 
-        
         if (block instanceof PortalCoreBlock) {
             return;
         }
 
-        
-        
         boolean interior = block instanceof BetterPortalBlock;
         if (!interior && block != ModConfig.getFrameBlock()) {
             return;
@@ -44,10 +36,6 @@ public class PortalEventHandler {
             PortalManager.deactivateByFrameBreak(world, core.getPos());
         }
     }
-
-    
-
-
 
     @SubscribeEvent
     public void onVanillaPortalSpawn(BlockEvent.PortalSpawnEvent event) {
